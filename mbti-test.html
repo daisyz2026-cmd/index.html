@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI 16型人格测试</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入html2canvas用于生成海报 -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <!-- 配置Tailwind自定义主题 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF', // 主蓝色
+                        secondary: '#E8F3FF', // 浅蓝背景
+                        neutral: '#F5F7FA', // 中性灰
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .transition-smooth {
+                transition: all 0.3s ease-in-out;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 20px rgba(22, 93, 255, 0.08);
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral min-h-screen font-sans text-gray-800">
+    <!-- 页面容器 -->
+    <div id="app" class="max-w-md mx-auto px-4 py-8">
+        <!-- 1. 首页 -->
+        <div id="home-page" class="transition-smooth">
+            <div class="text-center py-10">
+                <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold text-primary mb-6">MBTI 16型人格测试</h1>
+                <p class="text-gray-600 mb-10 leading-relaxed">
+                    MBTI（迈尔斯-布里格斯类型指标）是全球最流行的人格测评工具之一，
+                    通过60道专业题目，精准分析你的人格类型，探索真实的自己。
+                </p>
+                <button id="start-test-btn" class="bg-primary text-white px-10 py-4 rounded-full text-xl font-medium card-shadow hover:bg-primary/90 transition-smooth">
+                    开始测试
+                </button>
+            </div>
+            <div class="mt-10 text-center text-sm text-gray-500">
+                <p>基于经典MBTI理论 | 专业量表 | 结果仅供参考</p>
+            </div>
+        </div>
+
+        <!-- 2. 测试页面 -->
+        <div id="test-page" class="hidden transition-smooth">
+            <!-- 进度条 -->
+            <div class="mb-8">
+                <div class="flex justify-between text-sm mb-2">
+                    <span id="progress-text">第 1 题 / 共 60 题</span>
+                    <span id="progress-percent">1%</span>
+                </div>
+                <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-primary rounded-full transition-smooth" style="width: 1%;"></div>
+                </div>
+            </div>
+
+            <!-- 题目区域 -->
+            <div class="bg-white rounded-2xl p-6 card-shadow mb-8">
+                <h2 id="question-text" class="text-xl font-medium mb-6"></h2>
+                <div id="options-container" class="space-y-3">
+                    <!-- 选项会通过JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex justify-between">
+                <button id="prev-btn" class="px-6 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-smooth disabled:opacity-50 disabled:cursor-not-allowed">
+                    上一题
+                </button>
+                <button id="next-btn" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-smooth">
+                    下一题
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. 报告页面 -->
+        <div id="result-page" class="hidden transition-smooth">
+            <div class="bg-white rounded-2xl p-6 card-shadow mb-8">
+                <!-- 人格类型卡片 -->
+                <div class="text-center mb-8">
+                    <h2 id="personality-type" class="text-3xl font-bold text-primary mb-2">逻辑学家 INTP</h2>
+                    <p id="personality-brief" class="text-gray-600">富有想象力的发明家，对知识充满渴望</p>
+                </div>
+
+                <!-- 核心特质 -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-3 text-primary">核心特质</h3>
+                    <p id="core-traits" class="text-gray-700 leading-relaxed">
+                        逻辑学家们具有极强的逻辑思维和分析能力，喜欢抽象思考，追求精准和客观。他们好奇心旺盛，总是在探索新的想法和理论，不满足于表面的答案。
+                    </p>
+                </div>
+
+                <!-- 思维模式 -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-3 text-primary">思维模式</h3>
+                    <p id="thinking-mode" class="text-gray-700 leading-relaxed">
+                        倾向于通过逻辑分析而非情感来做决策，注重事物的本质和原理，喜欢独立思考，常常沉浸在自己的思维世界中，对重复性的工作感到乏味。
+                    </p>
+                </div>
+
+                <!-- 优劣势 -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-3 text-primary">优劣势分析</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-secondary rounded-lg p-4">
+                            <h4 class="font-medium mb-2">优势</h4>
+                            <p id="strengths" class="text-gray-700 text-sm">创新思维、逻辑清晰、独立自主、深度思考、追求真理</p>
+                        </div>
+                        <div class="bg-secondary rounded-lg p-4">
+                            <h4 class="font-medium mb-2">劣势</h4>
+                            <p id="weaknesses" class="text-gray-700 text-sm">社交被动、过度批判、缺乏实践、忽视情感、抗拒规则</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 职业倾向 -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-3 text-primary">职业倾向</h3>
+                    <p id="career-tendency" class="text-gray-700 leading-relaxed">
+                        适合需要独立思考和创新的领域，如科研、编程、学术研究、设计、数据分析、哲学等。适合的职业：软件工程师、科学家、大学教授、分析师、作家。
+                    </p>
+                </div>
+
+                <!-- 知名人物 -->
+                <div>
+                    <h3 class="text-lg font-medium mb-3 text-primary">知名人物</h3>
+                    <p id="famous-people" class="text-gray-700">爱因斯坦、霍金、比尔·盖茨、笛卡尔</p>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex flex-col sm:flex-row justify-between gap-4">
+                <button id="share-btn" class="flex-1 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-smooth">
+                    生成分享海报
+                </button>
+                <button id="retest-btn" class="flex-1 px-6 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-smooth">
+                    重新测试
+                </button>
+                <button id="history-btn" class="flex-1 px-6 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-smooth">
+                    查看历史
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. 海报预览弹窗 -->
+        <div id="poster-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-2xl p-4 max-w-sm w-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium">分享海报</h3>
+                    <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800">×</button>
+                </div>
+                <div id="poster-container" class="bg-white p-6 rounded-lg mb-4">
+                    <!-- 海报内容会动态生成 -->
+                </div>
+                <button id="save-poster-btn" class="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-smooth">
+                    保存海报到相册
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. 历史记录页面 -->
+        <div id="history-page" class="hidden transition-smooth">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-primary mb-2">测试历史</h2>
+                <button id="back-home-btn" class="text-primary hover:text-primary/80 transition-smooth">← 返回首页</button>
+            </div>
+
+            <div id="history-list" class="space-y-4">
+                <!-- 历史记录会动态生成 -->
+                <div class="bg-white rounded-xl p-4 card-shadow">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">暂无测试记录</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===================== 核心数据 =====================
+        // 1. MBTI题库（60题，按E/I、S/N、T/F、J/P四个维度分组）
+        const mbtiQuestions = [
+            // E/I维度（外向/内向）15题
+            { id: 1, text: "我更喜欢参加热闹的聚会", dimension: "EI", score: 0 },
+            { id: 2, text: "独处后我会感到精力充沛", dimension: "EI", score: 0 },
+            { id: 3, text: "我容易与陌生人建立联系", dimension: "EI", score: 0 },
+            { id: 4, text: "我倾向于在思考后再说话", dimension: "EI", score: 0 },
+            { id: 5, text: "社交活动会让我感到疲惫", dimension: "EI", score: 0 },
+            { id: 6, text: "我喜欢成为关注的焦点", dimension: "EI", score: 0 },
+            { id: 7, text: "我更愿意通过交谈来解决问题", dimension: "EI", score: 0 },
+            { id: 8, text: "我需要私人空间来放松", dimension: "EI", score: 0 },
+            { id: 9, text: "我主动发起社交活动", dimension: "EI", score: 0 },
+            { id: 10, text: "我在人群中会感到紧张", dimension: "EI", score: 0 },
+            { id: 11, text: "我喜欢和他人一起工作", dimension: "EI", score: 0 },
+            { id: 12, text: "我更享受独自完成任务", dimension: "EI", score: 0 },
+            { id: 13, text: "我很快就能适应新的社交环境", dimension: "EI", score: 0 },
+            { id: 14, text: "我需要时间来适应新认识的人", dimension: "EI", score: 0 },
+            { id: 15, text: "我经常主动联系朋友", dimension: "EI", score: 0 },
+
+            // S/N维度（实感/直觉）15题
+            { id: 16, text: "我更关注具体的事实和细节", dimension: "SN", score: 0 },
+            { id: 17, text: "我经常思考未来的可能性", dimension: "SN", score: 0 },
+            { id: 18, text: "我喜欢按部就班的生活", dimension: "SN", score: 0 },
+            { id: 19, text: "我经常有新奇的想法和灵感", dimension: "SN", score: 0 },
+            { id: 20, text: "我更相信经验而非直觉", dimension: "SN", score: 0 },
+            { id: 21, text: "我对抽象概念和理论感兴趣", dimension: "SN", score: 0 },
+            { id: 22, text: "我注重实际应用而非理论探讨", dimension: "SN", score: 0 },
+            { id: 23, text: "我喜欢探索事物的深层含义", dimension: "SN", score: 0 },
+            { id: 24, text: "我更关注眼前的现实而非未来", dimension: "SN", score: 0 },
+            { id: 25, text: "我经常做白日梦或幻想", dimension: "SN", score: 0 },
+            { id: 26, text: "我倾向于根据经验做决定", dimension: "SN", score: 0 },
+            { id: 27, text: "我对新想法和新概念充满好奇", dimension: "SN", score: 0 },
+            { id: 28, text: "我注重实用性和功能性", dimension: "SN", score: 0 },
+            { id: 29, text: "我喜欢思考事物之间的联系", dimension: "SN", score: 0 },
+            { id: 30, text: "我更关注“是什么”而非“可能是什么”", dimension: "SN", score: 0 },
+
+            // T/F维度（思考/情感）15题
+            { id: 31, text: "我做决定时更依赖逻辑分析", dimension: "TF", score: 0 },
+            { id: 32, text: "我做决定时更考虑他人感受", dimension: "TF", score: 0 },
+            { id: 33, text: "我认为公平比和谐更重要", dimension: "TF", score: 0 },
+            { id: 34, text: "我容易受到他人情绪的影响", dimension: "TF", score: 0 },
+            { id: 35, text: "我倾向于客观评价事物", dimension: "TF", score: 0 },
+            { id: 36, text: "我重视人际关系的和谐", dimension: "TF", score: 0 },
+            { id: 37, text: "我不介意批评他人只要是事实", dimension: "TF", score: 0 },
+            { id: 38, text: "我会避免说可能伤害他人的话", dimension: "TF", score: 0 },
+            { id: 39, text: "我更关注事情的对错而非感受", dimension: "TF", score: 0 },
+            { id: 40, text: "我经常换位思考理解他人", dimension: "TF", score: 0 },
+            { id: 41, text: "我能轻易放下个人情感做决定", dimension: "TF", score: 0 },
+            { id: 42, text: "我根据个人价值观做决定", dimension: "TF", score: 0 },
+            { id: 43, text: "我认为原则比人情更重要", dimension: "TF", score: 0 },
+            { id: 44, text: "我擅长安慰情绪低落的人", dimension: "TF", score: 0 },
+            { id: 45, text: "我倾向于理性而非感性", dimension: "TF", score: 0 },
+
+            // J/P维度（判断/感知）15题
+            { id: 46, text: "我喜欢有计划、有安排的生活", dimension: "JP", score: 0 },
+            { id: 47, text: "我喜欢灵活、随性的生活方式", dimension: "JP", score: 0 },
+            { id: 48, text: "我会提前做好详细的计划", dimension: "JP", score: 0 },
+            { id: 49, text: "我喜欢保持选择的开放性", dimension: "JP", score: 0 },
+            { id: 50, text: "我讨厌拖延和临时抱佛脚", dimension: "JP", score: 0 },
+            { id: 51, text: "我能很好地应对突发变化", dimension: "JP", score: 0 },
+            { id: 52, text: "我喜欢把事情尽快做完", dimension: "JP", score: 0 },
+            { id: 53, text: "我不介意事情悬而未决", dimension: "JP", score: 0 },
+            { id: 54, text: "我注重规则和秩序", dimension: "JP", score: 0 },
+            { id: 55, text: "我喜欢即兴发挥和随机应变", dimension: "JP", score: 0 },
+            { id: 56, text: "我会制定详细的待办清单", dimension: "JP", score: 0 },
+            { id: 57, text: "我很少制定长期计划", dimension: "JP", score: 0 },
+            { id: 58, text: "我喜欢把事情安排得井井有条", dimension: "JP", score: 0 },
+            { id: 59, text: "我享受随遇而安的状态", dimension: "JP", score: 0 },
+            { id: 60, text: "我讨厌事情没有明确的结果", dimension: "JP", score: 0 },
+        ];
+
+        // 2. MBTI人格类型数据库
+        const mbtiTypes = {
+            INTP: {
+                name: "逻辑学家",
+                brief: "富有想象力的发明家，对知识充满渴望",
+                coreTraits: "逻辑学家们具有极强的逻辑思维和分析能力，喜欢抽象思考，追求精准和客观。他们好奇心旺盛，总是在探索新的想法和理论，不满足于表面的答案。",
+                thinkingMode: "倾向于通过逻辑分析而非情感来做决策，注重事物的本质和原理，喜欢独立思考，常常沉浸在自己的思维世界中，对重复性的工作感到乏味。",
+                strengths: "创新思维、逻辑清晰、独立自主、深度思考、追求真理",
+                weaknesses: "社交被动、过度批判、缺乏实践、忽视情感、抗拒规则",
+                career: "适合需要独立思考和创新的领域，如科研、编程、学术研究、设计、数据分析、哲学等。适合的职业：软件工程师、科学家、大学教授、分析师、作家。",
+                famous: "爱因斯坦、霍金、比尔·盖茨、笛卡尔"
+            },
+            INTJ: {
+                name: "建筑师",
+                brief: "富有想象力的战略家，具有强大的逻辑思维",
+                coreTraits: "建筑师人格类型的人富有想象力和战略性，拥有强大的分析能力和远见卓识。他们自信、果断，能够制定复杂的计划并坚持执行，追求完美和效率。",
+                thinkingMode: "倾向于通过逻辑和战略思考来解决问题，注重长远目标和全局规划，喜欢独立工作，对自己和他人都有很高的标准。",
+                strengths: "战略思维、创新能力、独立思考、坚定果断、目标导向",
+                weaknesses: "过于挑剔、缺乏耐心、忽视情感、固执己见、社交冷淡",
+                career: "适合需要战略规划和创新的领域，如企业管理、软件开发、工程设计、科研、金融分析等。适合的职业：CEO、软件架构师、工程师、科学家、金融分析师。",
+                famous: "马斯克、牛顿、达芬奇、尼采"
+            },
+            INFJ: {
+                name: "提倡者",
+                brief: "安静而神秘，富有洞察力和理想主义",
+                coreTraits: "提倡者人格类型的人富有洞察力和理想主义，善于理解他人的内心世界，追求意义和价值。他们坚定地为自己的理想而努力，具有强烈的同理心和创造力。",
+                thinkingMode: "倾向于通过直觉和情感来理解世界，注重事物的深层含义和未来可能性，喜欢帮助他人实现潜能，对自己的价值观非常忠诚。",
+                strengths: "洞察力强、富有同理心、理想主义、创造力、坚定忠诚",
+                weaknesses: "过于理想主义、容易疲惫、难以放下、对批评敏感、不切实际",
+                career: "适合需要理解他人和创造价值的领域，如心理咨询、教育、写作、公益事业、艺术等。适合的职业：心理咨询师、教师、作家、公益组织者、艺术家。",
+                famous: "马丁·路德·金、特蕾莎修女、荣格、托尔斯泰"
+            },
+            INFP: {
+                name: "调停者",
+                brief: "充满理想主义的理想家，忠于自己的价值观",
+                coreTraits: "调停者人格类型的人充满理想主义和创造力，忠于自己的价值观和内心感受。他们富有同理心，善于理解他人，追求真实和意义，讨厌虚伪和功利。",
+                thinkingMode: "倾向于通过情感和直觉来做决定，注重个人成长和精神满足，喜欢独立工作，对自己感兴趣的事情充满热情。",
+                strengths: "富有创造力、同理心强、理想主义、忠诚、善于思考",
+                weaknesses: "过于敏感、犹豫不决、脱离现实、自我否定、避免冲突",
+                career: "适合需要创造力和同理心的领域，如写作、艺术、心理咨询、教育、公益等。适合的职业：作家、艺术家、心理咨询师、教师、编辑。",
+                famous: "莎士比亚、简·奥斯汀、梵高、梭罗"
+            },
+            ENTP: {
+                name: "辩论家",
+                brief: "聪明好奇的发明家，喜欢挑战和辩论",
+                coreTraits: "辩论家人格类型的人聪明、好奇、富有创造力，喜欢挑战传统和权威，善于发现问题并提出创新的解决方案。他们思维敏捷，口才出众，享受智力上的交锋。",
+                thinkingMode: "倾向于通过逻辑和创新思维来解决问题，注重可能性和多样性，喜欢即兴发挥，对重复和常规感到厌烦。",
+                strengths: "思维敏捷、富有创造力、口才出众、适应力强、好奇心旺",
+                weaknesses: "缺乏耐心、过于挑剔、忽视细节、容易分心、喜欢争论",
+                career: "适合需要创新和辩论的领域，如创业、营销、法律、媒体、科研等。适合的职业：企业家、营销策划、律师、主持人、设计师。",
+                famous: "乔布斯、马克·吐温、苏格拉底、马斯克"
+            },
+            ENTJ: {
+                name: "指挥官",
+                brief: "大胆果断的领导者，具有强大的执行力",
+                coreTraits: "指挥官人格类型的人大胆、果断、富有领导力，具有强大的逻辑思维和执行力，善于制定计划并推动实施。他们自信、坚定，喜欢掌控局面，追求效率和成功。",
+                thinkingMode: "倾向于通过逻辑和战略思考来做决策，注重结果和效率，喜欢挑战和竞争，对自己和他人都有很高的要求。",
+                strengths: "领导力强、果断坚定、逻辑清晰、执行力强、目标导向",
+                weaknesses: "过于强势、缺乏耐心、忽视情感、固执己见、不擅妥协",
+                career: "适合需要领导力和执行力的领域，如企业管理、军事、政治、金融、工程等。适合的职业：CEO、高管、将军、政治家、投资银行家。",
+                famous: "拿破仑、丘吉尔、扎克伯格、贝佐斯"
+            },
+            ENFJ: {
+                name: "主人公",
+                brief: "富有魅力的领导者，善于激励和鼓舞他人",
+                coreTraits: "主人公人格类型的人富有魅力和同理心，善于理解和激励他人，具有强大的沟通能力和领导力。他们热情、理想主义，致力于帮助他人成长和实现目标。",
+                thinkingMode: "倾向于通过情感和直觉来理解他人，注重人际关系和共同目标，喜欢引导和激励他人，对自己的价值观非常忠诚。",
+                strengths: "领导力强、同理心强、沟通能力好、热情积极、理想主义",
+                weaknesses: "过于理想化、容易疲惫、难以拒绝、对批评敏感、控制欲强",
+                career: "适合需要领导力和沟通能力的领域，如教育、管理、咨询、政治、媒体等。适合的职业：教师、高管、心理咨询师、政治家、主持人。",
+                famous: "奥巴马、马丁·路德·金、奥普拉、甘地"
+            },
+            ENFP: {
+                name: "竞选者",
+                brief: "热情富有创造力的理想家，善于发现可能性",
+                coreTraits: "竞选者人格类型的人热情、乐观、富有创造力，善于发现新的可能性和机会，具有强大的同理心和沟通能力。他们充满活力，喜欢与人交往，追求新鲜感和意义。",
+                thinkingMode: "倾向于通过情感和直觉来理解世界，注重可能性和多样性，喜欢即兴发挥，对自己感兴趣的事情充满热情。",
+                strengths: "热情乐观、富有创造力、同理心强、沟通能力好、适应力强",
+                weaknesses: "缺乏耐心、容易分心、过于乐观、难以专注、避免冲突",
+                career: "适合需要创造力和沟通能力的领域，如营销、教育、媒体、艺术、咨询等。适合的职业：营销策划、教师、主持人、艺术家、心理咨询师。",
+                famous: "迪士尼、乔布斯、肯尼迪、马克·吐温"
+            },
+            ISFP: {
+                name: "探险家",
+                brief: "灵活热情的艺术家，享受当下的美好",
+                coreTraits: "探险家人格类型的人灵活、热情、富有创造力，善于发现和享受生活中的美好，具有强烈的审美感和同理心。他们注重实际体验，喜欢动手实践，讨厌束缚和规则。",
+                thinkingMode: "倾向于通过实感和情感来理解世界，注重当下的体验和感受，喜欢即兴发挥，对自己感兴趣的事情充满热情。",
+                strengths: "创造力强、同理心强、务实、灵活、享受生活",
+                weaknesses: "缺乏规划、容易分心、避免冲突、不擅表达、敏感脆弱",
+                career: "适合需要创造力和实践能力的领域，如艺术、设计、手工艺、体育、烹饪等。适合的职业：艺术家、设计师、厨师、运动员、摄影师。",
+                famous: "麦当娜、贝克汉姆、毕加索、海明威"
+            },
+            ISFJ: {
+                name: "守卫者",
+                brief: "专注而温暖的守护者，善于照顾他人",
+                coreTraits: "守卫者人格类型的人专注、温暖、富有责任感，善于照顾和保护他人，具有强烈的同理心和耐心。他们注重传统和稳定，忠于自己的家庭和职责。",
+                thinkingMode: "倾向于通过实感和情感来做决定，注重他人的感受和需要，喜欢按部就班地工作，对自己的责任非常忠诚。",
+                strengths: "有责任感、同理心强、耐心细致、忠诚可靠、善于照顾他人",
+                weaknesses: "过于保守、忽视自我、避免冲突、对批评敏感、缺乏自信",
+                career: "适合需要照顾他人和责任感的领域，如护理、教育、行政、社会工作、客服等。适合的职业：护士、教师、行政人员、社工、客服专员。",
+                famous: "戴安娜王妃、特蕾莎修女、乔治·华盛顿、居里夫人"
+            },
+            ISTP: {
+                name: "鉴赏家",
+                brief: "大胆而实用的实验家，善于动手解决问题",
+                coreTraits: "鉴赏家人格类型的人大胆、务实、富有好奇心，善于动手解决实际问题，具有强大的逻辑思维和适应能力。他们注重实际体验，喜欢探索和尝试新事物。",
+                thinkingMode: "倾向于通过实感和逻辑来解决问题，注重实用性和效率，喜欢即兴发挥，对机械和技术类事物特别感兴趣。",
+                strengths: "动手能力强、逻辑清晰、务实、适应力强、好奇心旺",
+                weaknesses: "缺乏耐心、忽视情感、容易无聊、避免承诺、冲动行事",
+                career: "适合需要动手能力和逻辑思维的领域，如工程、技术、手工艺、体育、军事等。适合的职业：工程师、技师、机械师、运动员、军人。",
+                famous: "乔布斯、爱因斯坦、李小龙、史蒂夫·欧文"
+            },
+            ISTJ: {
+                name: "物流师",
+                brief: "实际而可靠的组织者，善于管理和执行",
+                coreTraits: "物流师人格类型的人实际、可靠、富有责任感，善于组织和管理事务，具有强大的执行力和专注力。他们注重规则和秩序，忠于自己的职责和承诺。",
+                thinkingMode: "倾向于通过实感和逻辑来做决定，注重事实和细节，喜欢按部就班地工作，对自己的责任非常忠诚。",
+                strengths: "有责任感、可靠、务实、细心、执行力强",
+                weaknesses: "过于保守、缺乏变通、忽视情感、对变化敏感、不擅表达",
+                career: "适合需要责任感和执行力的领域，如会计、行政、工程、军事、金融等。适合的职业：会计、行政主管、工程师、军人、银行职员。",
+                famous: "乔治·华盛顿、丘吉尔、巴菲特、比尔·盖茨"
+            },
+            ESFP: {
+                name: "表演者",
+                brief: "热情而外向的艺人，善于享受生活和娱乐他人",
+                coreTraits: "表演者人格类型的人热情、外向、富有活力，善于娱乐和感染他人，具有强烈的审美感和同理心。他们注重当下的体验，喜欢与人交往，讨厌无聊和单调。",
+                thinkingMode: "倾向于通过实感和情感来理解世界，注重他人的感受和反应，喜欢即兴发挥，对新鲜和有趣的事物充满热情。",
+                strengths: "热情外向、富有活力、同理心强、善于表达、适应力强",
+                weaknesses: "缺乏规划、容易分心、避免冲突、冲动行事、肤浅浮躁",
+                career: "适合需要表达能力和活力的领域，如演艺、营销、旅游、体育、教育等。适合的职业：演员、主持人、营销人员、导游、健身教练。",
+                famous: "玛丽莲·梦露、麦当娜、迈克尔·杰克逊、小甜甜布兰妮"
+            },
+            ESFJ: {
+                name: "执政官",
+                brief: "热情而负责的提供者，善于照顾和帮助他人",
+                coreTraits: "执政官人格类型的人热情、负责、富有同理心，善于照顾和帮助他人，具有强大的沟通能力和组织能力。他们注重人际关系和传统，忠于自己的家庭和社区。",
+                thinkingMode: "倾向于通过实感和情感来做决定，注重他人的感受和需要，喜欢组织和协调事务，对自己的责任非常忠诚。",
+                strengths: "有责任感、同理心强、善于沟通、组织能力好、热情好客",
+                weaknesses: "过于在意他人看法、忽视自我、避免冲突、缺乏主见、保守固执",
+                career: "适合需要照顾他人和沟通能力的领域，如教育、护理、行政、销售、公关等。适合的职业：教师、护士、行政主管、销售、公关专员。",
+                famous: "奥普拉、泰勒·斯威夫特、戴安娜王妃、特蕾莎修女"
+            },
+            ESTP: {
+                name: "企业家",
+                brief: "大胆而精力充沛的感知者，善于冒险和行动",
+                coreTraits: "企业家人格类型的人大胆、精力充沛、富有冒险精神，善于行动和解决实际问题，具有强大的适应能力和说服力。他们注重实际效果，喜欢挑战和刺激。",
+                thinkingMode: "倾向于通过实感和逻辑来解决问题，注重实用性和结果，喜欢即兴发挥，对风险和挑战充满热情。",
+                strengths: "行动力强、适应力强、务实、有说服力、敢于冒险",
+                weaknesses: "缺乏耐心、忽视未来、冲动行事、避免承诺、肤浅浮躁",
+                career: "适合需要行动力和冒险精神的领域，如创业、销售、体育、演艺、军事等。适合的职业：企业家、销售总监、运动员、演员、军人。",
+                famous: "特朗普、麦当娜、李小龙、阿诺德·施瓦辛格"
+            },
+            ESTJ: {
+                name: "总经理",
+                brief: "高效而负责的管理者，善于组织和领导",
+                coreTraits: "总经理人格类型的人高效、负责、富有领导力，善于组织和管理事务，具有强大的执行力和决策能力。他们注重规则和效率，忠于自己的职责和目标。",
+                thinkingMode: "倾向于通过实感和逻辑来做决定，注重事实和结果，喜欢组织和指挥他人，对自己的判断非常自信。",
+                strengths: "有责任感、领导力强、务实、果断、执行力强",
+                weaknesses: "过于强势、缺乏耐心、忽视情感、固执己见、不擅变通",
+                career: "适合需要领导力和执行力的领域，如企业管理、军事、政治、行政、金融等。适合的职业：CEO、高管、将军、政治家、行政主管。",
+                famous: "特朗普、丘吉尔、巴菲特、乔治·布什"
+            }
+        };
+
+        // ===================== 全局变量 =====================
+        let currentQuestionIndex = 0; // 当前题目索引
+        let userAnswers = [...mbtiQuestions]; // 用户答题数据
+        let personalityResult = ""; // 最终人格类型
+
+        // ===================== 页面切换函数 =====================
+        // 显示指定页面，隐藏其他页面
+        function showPage(pageId) {
+            const pages = ['home-page', 'test-page', 'result-page', 'history-page'];
+            pages.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(pageId).classList.remove('hidden');
+        }
+
+        // ===================== 测试页面功能 =====================
+        // 初始化测试页面
+        function initTestPage() {
+            currentQuestionIndex = 0;
+            renderQuestion();
+            updateProgress();
+            
+            // 禁用上一题按钮（第一题）
+            document.getElementById('prev-btn').disabled = true;
+        }
+
+        // 渲染当前题目
+        function renderQuestion() {
+            const question = userAnswers[currentQuestionIndex];
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            
+            // 设置题目文本
+            questionText.textContent = `${question.id}. ${question.text}`;
+            
+            // 生成选项（李克特五分量表）
+            const options = [
+                { value: 5, text: "非常同意" },
+                { value: 4, text: "同意" },
+                { value: 3, text: "中立" },
+                { value: 2, text: "不同意" },
+                { value: 1, text: "非常不同意" }
+            ];
+            
+            // 清空原有选项
+            optionsContainer.innerHTML = '';
+            
+            // 添加新选项
+            options.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option-item p-3 border border-gray-200 rounded-lg hover:bg-secondary transition-smooth cursor-pointer';
+                optionDiv.dataset.value = option.value;
+                optionDiv.textContent = option.text;
+                
+                // 如果用户之前答过这题，高亮选中的选项
+                if (question.score === option.value) {
+                    optionDiv.classList.add('bg-primary/10', 'border-primary');
+                }
+                
+                // 选项点击事件
+                optionDiv.addEventListener('click', () => {
+                    // 移除所有选项的选中状态
+                    document.querySelectorAll('.option-item').forEach(item => {
+                        item.classList.remove('bg-primary/10', 'border-primary');
+                    });
+                    // 添加当前选项的选中状态
+                    optionDiv.classList.add('bg-primary/10', 'border-primary');
+                    // 保存用户答案
+                    userAnswers[currentQuestionIndex].score = option.value;
+                });
+                
+                optionsContainer.appendChild(optionDiv);
+            });
+        }
+
+        // 更新进度条
+        function updateProgress() {
+            const progressText = document.getElementById('progress-text');
+            const progressPercent = document.getElementById('progress-percent');
+            const progressBar = document.getElementById('progress-bar');
+            
+            const current = currentQuestionIndex + 1;
+            const total = userAnswers.length;
+            const percent = Math.round((current / total) * 100);
+            
+            progressText.textContent = `第 ${current} 题 / 共 ${total} 题`;
+            progressPercent.textContent = `${percent}%`;
+            progressBar.style.width = `${percent}%`;
+            
+            // 更新按钮状态
+            document.getElementById('prev-btn').disabled = current === 1;
+            document.getElementById('next-btn').textContent = current === total ? '完成测试' : '下一题';
+        }
+
+        // 上一题
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion();
+                updateProgress();
+            }
+        }
+
+        // 下一题
+        function nextQuestion() {
+            // 检查用户是否选择了答案
+            if (userAnswers[currentQuestionIndex].score === 0) {
+                alert('请选择一个选项后继续');
+                return;
+            }
+            
+            // 如果是最后一题，计算结果并显示报告
+            if (currentQuestionIndex === userAnswers.length - 1) {
+                calculateResult();
+                saveHistory();
+                showPage('result-page');
+                return;
+            }
+            
+            // 否则显示下一题
+            currentQuestionIndex++;
+            renderQuestion();
+            updateProgress();
+        }
+
+        // ===================== 结果计算函数 =====================
+        // 计算MBTI结果
+        function calculateResult() {
+            // 初始化各维度得分
+            let EIScore = 0, SNScores = 0, TFScores = 0, JPScores = 0;
+            
+            // 计算各维度总分
+            userAnswers.forEach(question => {
+                switch (question.dimension) {
+                    case "EI":
+                        // E倾向：非常同意(5)得分高，I倾向：非常不同意(1)得分高
+                        EIScore += question.score;
+                        break;
+                    case "SN":
+                        SNScores += question.score;
+                        break;
+                    case "TF":
+                        TFScores += question.score;
+                        break;
+                    case "JP":
+                        JPScores += question.score;
+                        break;
+                }
+            });
+            
+            // 计算各维度倾向（以中间值45为分界，15题×3=45）
+            const EI = EIScore > 45 ? "E" : "I";
+            const SN = SNScores > 45 ? "S" : "N";
+            const TF = TFScores > 45 ? "T" : "F";
+            const JP = JPScores > 45 ? "J" : "P";
+            
+            // 组合成最终人格类型
+            personalityResult = EI + SN + TF + JP;
+            
+            // 更新报告页面内容
+            updateResultPage();
+        }
+
+        // 更新报告页面
+        function updateResultPage() {
+            const typeData = mbtiTypes[personalityResult] || mbtiTypes.INTP;
+            
+            document.getElementById('personality-type').textContent = `${typeData.name} ${personalityResult}`;
+            document.getElementById('personality-brief').textContent = typeData.brief;
+            document.getElementById('core-traits').textContent = typeData.coreTraits;
+            document.getElementById('thinking-mode').textContent = typeData.thinkingMode;
+            document.getElementById('strengths').textContent = typeData.strengths;
+            document.getElementById('weaknesses').textContent = typeData.weaknesses;
+            document.getElementById('career-tendency').textContent = typeData.career;
+            document.getElementById('famous-people').textContent = typeData.famous;
+        }
+
+        // ===================== 历史记录功能 =====================
+        // 保存测试历史
+        function saveHistory() {
+            const history = JSON.parse(localStorage.getItem('mbtiHistory') || '[]');
+            const typeData = mbtiTypes[personalityResult] || mbtiTypes.INTP;
+            
+            const record = {
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                type: personalityResult,
+                name: typeData.name,
+                brief: typeData.brief
+            };
+            
+            history.unshift(record); // 添加到开头
+            localStorage.setItem('mbtiHistory', JSON.stringify(history));
+        }
+
+        // 加载历史记录
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('mbtiHistory') || '[]');
+            const historyList = document.getElementById('history-list');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="bg-white rounded-xl p-4 card-shadow">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">暂无测试记录</span>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            historyList.innerHTML = '';
+            history.forEach(record => {
+                const recordDiv = document.createElement('div');
+                recordDiv.className = 'bg-white rounded-xl p-4 card-shadow';
+                recordDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium text-primary">${record.name} ${record.type}</span>
+                        <span class="text-sm text-gray-500">${record.date}</span>
+                    </div>
+                    <p class="text-gray-600 text-sm">${record.brief}</p>
+                `;
+                historyList.appendChild(recordDiv);
+            });
+        }
+
+        // ===================== 分享海报功能 =====================
+        // 生成分享海报
+        function generatePoster() {
+            const posterContainer = document.getElementById('poster-container');
+            const typeData = mbtiTypes[personalityResult] || mbtiTypes.INTP;
+            
+            // 生成海报内容
+            posterContainer.innerHTML = `
+                <div id="poster" class="w-full bg-gradient-to-br from-primary/10 to-secondary rounded-xl p-6 text-center">
+                    <h3 class="text-2xl font-bold text-primary mb-2">${typeData.name} ${personalityResult}</h3>
+                    <p class="text-gray-600 mb-4">${typeData.brief}</p>
+                    <div class="w-full h-40 bg-primary/5 rounded-lg flex items-center justify-center mb-4">
+                        <span class="text-gray-400">MBTI测试结果</span>
+                    </div>
+                    <p class="text-sm text-gray-500">来自MBTI 16型人格测试</p>
+                </div>
+            `;
+            
+            // 显示弹窗
+            document.getElementById('poster-modal').classList.remove('hidden');
+        }
+
+        // 保存海报
+        function savePoster() {
+            html2canvas(document.getElementById('poster')).then(canvas => {
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.download = `MBTI测试结果_${personalityResult}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // 关闭弹窗
+                document.getElementById('poster-modal').classList.add('hidden');
+            });
+        }
+
+        // ===================== 事件监听 =====================
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 首页开始测试按钮
+            document.getElementById('start-test-btn').addEventListener('click', () => {
+                initTestPage();
+                showPage('test-page');
+            });
+            
+            // 测试页面按钮
+            document.getElementById('prev-btn').addEventListener('click', prevQuestion);
+            document.getElementById('next-btn').addEventListener('click', nextQuestion);
+            
+            // 结果页面按钮
+            document.getElementById('retest-btn').addEventListener('click', () => {
+                initTestPage();
+                showPage('test-page');
+            });
+            
+            document.getElementById('share-btn').addEventListener('click', generatePoster);
+            
+            document.getElementById('history-btn').addEventListener('click', () => {
+                loadHistory();
+                showPage('history-page');
+            });
+            
+            // 海报弹窗按钮
+            document.getElementById('close-modal-btn').addEventListener('click', () => {
+                document.getElementById('poster-modal').classList.add('hidden');
+            });
+            
+            document.getElementById('save-poster-btn').addEventListener('click', savePoster);
+            
+            // 历史页面返回首页
+            document.getElementById('back-home-btn').addEventListener('click', () => {
+                showPage('home-page');
+            });
+            
+            // 点击弹窗外部关闭
+            document.getElementById('poster-modal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('poster-modal')) {
+                    document.getElementById('poster-modal').classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
